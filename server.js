@@ -108,6 +108,18 @@ async function fetchImageUrl(imageId) {
   return resp.json();
 }
 
+// 2点間の距離(km)
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // 1ラウンド分のランダムな街並み画像を返す
 app.get("/api/round", async (req, res) => {
   if (!MAPILLARY_TOKEN) {
@@ -133,20 +145,36 @@ app.get("/api/round", async (req, res) => {
       const images = await fetchTileImages(x, y);
       if (images.length === 0) continue;
 
+      // メイン1枚＋同じ場所(250m以内)の別写真を最大4枚追加
       const candidate = pick(images);
-      const detail = await fetchImageUrl(candidate.id);
-      if (!detail.thumb_1024_url) continue;
+      const nearby = images
+        .filter(
+          (im) =>
+            im.id !== candidate.id &&
+            distanceKm(candidate.lat, candidate.lon, im.lat, im.lon) < 0.25
+        )
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 4);
+
+      const ids = [candidate.id, ...nearby.map((n) => n.id)];
+      const details = await Promise.all(
+        ids.map((id) => fetchImageUrl(id).catch(() => null))
+      );
+      const imageUrls = details
+        .filter((d) => d && d.thumb_1024_url)
+        .map((d) => d.thumb_1024_url);
+      if (imageUrls.length === 0) continue;
 
       return res.json({
         imageId: candidate.id,
-        imageUrl: detail.thumb_1024_url,
-        isPano: Boolean(detail.is_pano),
-        capturedAt: detail.captured_at || null,
+        imageUrl: imageUrls[0],
+        imageUrls,
         // 正解座標（クライアントでスコア計算に使用）
         lat: candidate.lat,
         lon: candidate.lon,
         scale: cfg.scale,
         regionLabel: cfg.label,
+        mapView: cfg.mapView || { center: [0, 20], zoom: 1 },
       });
     } catch (err) {
       lastError = err;

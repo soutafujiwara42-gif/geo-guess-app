@@ -63,6 +63,18 @@ async function fetchImageUrl(imageId) {
   return resp.json();
 }
 
+// 2点間の距離(km)
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // 1ラウンド分のお題を取得（旧 /api/round 相当）
 async function getRound(region, country) {
   const cfg = resolveRegion(region, country);
@@ -78,17 +90,34 @@ async function getRound(region, country) {
       const images = await fetchTileImages(x, y);
       if (images.length === 0) continue;
 
+      // メイン1枚＋同じ場所(250m以内)の別写真を最大4枚追加
       const candidate = pick(images);
-      const detail = await fetchImageUrl(candidate.id);
-      if (!detail.thumb_1024_url) continue;
+      const nearby = images
+        .filter(
+          (im) =>
+            im.id !== candidate.id &&
+            distanceKm(candidate.lat, candidate.lon, im.lat, im.lon) < 0.25
+        )
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 4);
+
+      const ids = [candidate.id, ...nearby.map((n) => n.id)];
+      const details = await Promise.all(
+        ids.map((id) => fetchImageUrl(id).catch(() => null))
+      );
+      const imageUrls = details
+        .filter((d) => d && d.thumb_1024_url)
+        .map((d) => d.thumb_1024_url);
+      if (imageUrls.length === 0) continue;
 
       return {
         imageId: candidate.id,
-        imageUrl: detail.thumb_1024_url,
+        imageUrls,
         lat: candidate.lat,
         lon: candidate.lon,
         scale: cfg.scale,
         regionLabel: cfg.label,
+        mapView: cfg.mapView || { center: [0, 20], zoom: 1 },
       };
     } catch (err) {
       lastError = err;
@@ -112,6 +141,8 @@ const state = {
   scale: 2000,
   timerId: null,
   timeLeft: 0,
+  photos: [],
+  photoIdx: 0,
 };
 
 let guessMap = null;
@@ -234,8 +265,6 @@ async function nextRound() {
   $("loading").style.display = "block";
   $("pano-img").style.visibility = "hidden";
 
-  if (guessMap) guessMap.jumpTo({ center: [0, 20], zoom: 1 });
-
   try {
     const data = await getRound(
       state.region,
@@ -244,19 +273,46 @@ async function nextRound() {
     state.current = data;
     state.scale = data.scale;
 
-    const img = $("pano-img");
-    img.onload = () => {
-      $("loading").style.display = "none";
-      img.style.visibility = "visible";
-    };
-    img.onerror = () => { $("loading").textContent = "画像の読み込みに失敗。次へ進めます。"; };
-    img.src = data.imageUrl;
+    // 推測マップを選択エリアの初期表示にする（関東なら関東全体など）
+    if (guessMap && data.mapView) {
+      guessMap.jumpTo({ center: data.mapView.center, zoom: data.mapView.zoom });
+    }
 
+    setupPhotos(data.imageUrls);
     startTimer();
   } catch (e) {
     $("loading").textContent = "エラー: " + e.message;
   }
 }
+
+// ====== 写真の切り替え ======
+function setupPhotos(urls) {
+  state.photos = urls;
+  state.photoIdx = 0;
+  const multi = urls.length > 1;
+  $("photo-prev").style.display = multi ? "block" : "none";
+  $("photo-next").style.display = multi ? "block" : "none";
+  $("photo-count").style.display = multi ? "block" : "none";
+  showPhoto(0);
+}
+
+function showPhoto(idx) {
+  const n = state.photos.length;
+  state.photoIdx = ((idx % n) + n) % n;
+  const img = $("pano-img");
+  $("loading").textContent = "画像を読み込み中…";
+  $("loading").style.display = "block";
+  img.onload = () => {
+    $("loading").style.display = "none";
+    img.style.visibility = "visible";
+  };
+  img.onerror = () => { $("loading").textContent = "画像の読み込みに失敗しました。"; };
+  img.src = state.photos[state.photoIdx];
+  $("photo-count").textContent = `${state.photoIdx + 1}/${n}`;
+}
+
+$("photo-prev").onclick = () => showPhoto(state.photoIdx - 1);
+$("photo-next").onclick = () => showPhoto(state.photoIdx + 1);
 
 // ====== タイマー ======
 function startTimer() {

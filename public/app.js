@@ -15,6 +15,8 @@ const state = {
   scale: 2000,
   timerId: null,
   timeLeft: 0,
+  photos: [],       // このラウンドの写真URL一覧
+  photoIdx: 0,
 };
 
 let guessMap = null;
@@ -150,9 +152,6 @@ async function nextRound() {
   $("loading").style.display = "block";
   $("pano-img").style.visibility = "hidden";
 
-  // 推測マップを初期表示に戻す
-  if (guessMap) guessMap.jumpTo({ center: [0, 20], zoom: 1 });
-
   try {
     const q = new URLSearchParams({ region: state.region });
     if (state.region === "country" && state.country) q.set("country", state.country);
@@ -162,19 +161,46 @@ async function nextRound() {
     state.current = data;
     state.scale = data.scale;
 
-    const img = $("pano-img");
-    img.onload = () => {
-      $("loading").style.display = "none";
-      img.style.visibility = "visible";
-    };
-    img.onerror = () => { $("loading").textContent = "画像の読み込みに失敗。次へ進めます。"; };
-    img.src = data.imageUrl;
+    // 推測マップを選択エリアの初期表示にする（関東なら関東全体など）
+    if (guessMap && data.mapView) {
+      guessMap.jumpTo({ center: data.mapView.center, zoom: data.mapView.zoom });
+    }
 
+    setupPhotos(data.imageUrls || [data.imageUrl]);
     startTimer();
   } catch (e) {
     $("loading").textContent = "エラー: " + e.message;
   }
 }
+
+// ====== 写真の切り替え ======
+function setupPhotos(urls) {
+  state.photos = urls;
+  state.photoIdx = 0;
+  const multi = urls.length > 1;
+  $("photo-prev").style.display = multi ? "block" : "none";
+  $("photo-next").style.display = multi ? "block" : "none";
+  $("photo-count").style.display = multi ? "block" : "none";
+  showPhoto(0);
+}
+
+function showPhoto(idx) {
+  const n = state.photos.length;
+  state.photoIdx = ((idx % n) + n) % n;
+  const img = $("pano-img");
+  $("loading").textContent = "画像を読み込み中…";
+  $("loading").style.display = "block";
+  img.onload = () => {
+    $("loading").style.display = "none";
+    img.style.visibility = "visible";
+  };
+  img.onerror = () => { $("loading").textContent = "画像の読み込みに失敗しました。"; };
+  img.src = state.photos[state.photoIdx];
+  $("photo-count").textContent = `${state.photoIdx + 1}/${n}`;
+}
+
+$("photo-prev").onclick = () => showPhoto(state.photoIdx - 1);
+$("photo-next").onclick = () => showPhoto(state.photoIdx + 1);
 
 // ====== タイマー ======
 function startTimer() {

@@ -44,6 +44,7 @@ async function init() {
     buildRegionButtons(meta.regions);
     buildCountrySelect(meta.countries);
     if (!meta.hasToken) $("token-warning").style.display = "block";
+    startPrefetch(); // 初期エリアの1問目を先読み
   } catch (e) {
     // フォールバック（API失敗時）
     buildRegionButtons([
@@ -73,6 +74,7 @@ function buildRegionButtons(regions) {
       b.classList.add("active");
       state.region = r.id;
       $("country-field").style.display = r.id === "country" ? "block" : "none";
+      startPrefetch(); // エリア選択した時点で1問目を先読み
     };
     container.appendChild(b);
   });
@@ -89,7 +91,54 @@ function buildCountrySelect(countries) {
     sel.appendChild(o);
   });
   state.country = countries[0]?.id || null;
-  sel.onchange = () => (state.country = sel.value);
+  sel.onchange = () => {
+    state.country = sel.value;
+    if (state.region === "country") startPrefetch();
+  };
+}
+
+// ===== 先読み（次のラウンドを裏で取得して表示を高速化） =====
+let prefetched = null; // { key, promise }
+
+function roundKey() {
+  return state.region + ":" + (state.region === "country" ? state.country : "");
+}
+
+function fetchRoundData() {
+  const q = new URLSearchParams({ region: state.region });
+  if (state.region === "country" && state.country) q.set("country", state.country);
+  return fetch("/api/round?" + q.toString())
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.error) throw new Error(data.error);
+      return data;
+    });
+}
+
+function preloadImages(urls) {
+  urls.forEach((u) => { const im = new Image(); im.src = u; });
+}
+
+function startPrefetch() {
+  const key = roundKey();
+  prefetched = {
+    key,
+    promise: fetchRoundData()
+      .then((d) => { preloadImages(d.imageUrls || [d.imageUrl]); return d; })
+      .catch(() => null),
+  };
+}
+
+async function obtainRound() {
+  if (prefetched && prefetched.key === roundKey()) {
+    const d = await prefetched.promise;
+    prefetched = null;
+    if (d) return d;
+  }
+  prefetched = null;
+  const d = await fetchRoundData();
+  preloadImages(d.imageUrls || [d.imageUrl]);
+  return d;
 }
 
 // 制限時間ボタン
@@ -153,11 +202,9 @@ async function nextRound() {
   $("pano-img").style.visibility = "hidden";
 
   try {
-    const q = new URLSearchParams({ region: state.region });
-    if (state.region === "country" && state.country) q.set("country", state.country);
-    const data = await fetch("/api/round?" + q.toString()).then((r) => r.json());
-    if (data.error) throw new Error(data.error);
-
+    const data = await obtainRound();
+    // 次のラウンドを今のうちに先読みしておく
+    if (state.round < TOTAL_ROUNDS) startPrefetch();
     state.current = data;
     state.scale = data.scale;
 

@@ -128,6 +128,39 @@ async function getRound(region, country) {
   );
 }
 
+// ===== 先読み（次のラウンドを裏で取得して表示を高速化） =====
+let prefetched = null; // { key, promise }
+
+function roundKey() {
+  return state.region + ":" + (state.region === "country" ? state.country : "");
+}
+
+function preloadImages(urls) {
+  urls.forEach((u) => { const im = new Image(); im.src = u; });
+}
+
+function startPrefetch() {
+  const key = roundKey();
+  prefetched = {
+    key,
+    promise: getRound(state.region, state.region === "country" ? state.country : null)
+      .then((d) => { preloadImages(d.imageUrls); return d; })
+      .catch(() => null),
+  };
+}
+
+async function obtainRound() {
+  if (prefetched && prefetched.key === roundKey()) {
+    const d = await prefetched.promise;
+    prefetched = null;
+    if (d) return d;
+  }
+  prefetched = null;
+  const d = await getRound(state.region, state.region === "country" ? state.country : null);
+  preloadImages(d.imageUrls);
+  return d;
+}
+
 // ===== ゲーム状態・UI（Render版 public/app.js と同等） =====
 const state = {
   region: "kanto",
@@ -168,6 +201,7 @@ function init() {
   const countries = Object.entries(COUNTRIES).map(([id, c]) => ({ id, label: c.label }));
   buildRegionButtons(regions);
   buildCountrySelect(countries);
+  startPrefetch(); // 初期エリアの1問目を先読み
 }
 
 function buildRegionButtons(regions) {
@@ -187,6 +221,7 @@ function buildRegionButtons(regions) {
       b.classList.add("active");
       state.region = r.id;
       $("country-field").style.display = r.id === "country" ? "block" : "none";
+      startPrefetch(); // エリア選択した時点で1問目を先読み
     };
     container.appendChild(b);
   });
@@ -203,7 +238,10 @@ function buildCountrySelect(countries) {
     sel.appendChild(o);
   });
   state.country = countries[0]?.id || null;
-  sel.onchange = () => (state.country = sel.value);
+  sel.onchange = () => {
+    state.country = sel.value;
+    if (state.region === "country") startPrefetch();
+  };
 }
 
 $("time-buttons").querySelectorAll(".opt-btn").forEach((b) => {
@@ -266,10 +304,9 @@ async function nextRound() {
   $("pano-img").style.visibility = "hidden";
 
   try {
-    const data = await getRound(
-      state.region,
-      state.region === "country" ? state.country : null
-    );
+    const data = await obtainRound();
+    // 次のラウンドを今のうちに先読みしておく
+    if (state.round < TOTAL_ROUNDS) startPrefetch();
     state.current = data;
     state.scale = data.scale;
 

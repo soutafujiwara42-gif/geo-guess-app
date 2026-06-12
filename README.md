@@ -3,6 +3,17 @@
 GeoGuessr 風の「街並みの写真から場所を当てる」ゲームです。
 すべて **無料サービス** で構成しています。
 
+## 🚀 2つの公開版
+
+| 版 | URL | 特徴 |
+|----|-----|------|
+| **GitHub Pages（静的版・推奨）** | https://soutafujiwara42-gif.github.io/geo-guess-app/ | サーバー不要・常に即起動。`docs/` フォルダ |
+| **Render（動的版）** | https://geo-guess-app.onrender.com | トークンをサーバーで秘匿。無料プランのためスリープあり（初回約50秒） |
+
+静的版は Mapillary の Client Token（クライアント埋め込み前提・読み取り専用）を
+`docs/app.js` に直接記載しています。main ブランチに push すると GitHub Actions が
+自動で Pages にデプロイします（`.github/workflows/pages.yml`）。
+
 | 役割 | 使用サービス |
 |------|--------------|
 | 街並み画像 | [Mapillary](https://www.mapillary.com/)（オープンライセンス・25億枚超） |

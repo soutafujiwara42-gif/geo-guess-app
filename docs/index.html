@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>街並みあてゲーム 🌍 GeoGuess</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ===== スタート画面 ===== -->
+  <div id="start-screen" class="screen">
+    <div class="start-card">
+      <h1>🌍 街並みあてゲーム</h1>
+      <p class="subtitle">表示された街並みの写真から、世界のどこかを推理しよう。<br>5ラウンドの合計スコアを競います。</p>
+
+      <div class="field">
+        <label>出題エリア</label>
+        <div id="region-buttons" class="btn-group"></div>
+      </div>
+
+      <div class="field" id="country-field" style="display:none;">
+        <label>国を選択</label>
+        <select id="country-select"></select>
+      </div>
+
+      <div class="field">
+        <label>制限時間</label>
+        <div id="time-buttons" class="btn-group">
+          <button class="opt-btn active" data-time="0">なし</button>
+          <button class="opt-btn" data-time="120">120秒</button>
+          <button class="opt-btn" data-time="60">60秒</button>
+          <button class="opt-btn" data-time="30">30秒</button>
+        </div>
+      </div>
+
+      <button id="start-btn" class="primary-btn">スタート</button>
+    </div>
+  </div>
+
+  <!-- ===== ゲーム画面 ===== -->
+  <div id="game-screen" class="screen" style="display:none;">
+    <!-- 街並み画像 -->
+    <div id="pano-view">
+      <img id="pano-img" alt="街並み" />
+      <div id="loading" class="loading">画像を読み込み中…</div>
+    </div>
+
+    <!-- 上部HUD -->
+    <div id="hud">
+      <div class="hud-item">ラウンド <b><span id="round-now">1</span>/5</b></div>
+      <div class="hud-item">合計 <b id="total-score">0</b></div>
+      <div class="hud-item" id="timer-box" style="display:none;">⏱ <b id="timer">0</b></div>
+    </div>
+
+    <!-- 推測マップ -->
+    <div id="map-panel">
+      <div id="guess-map"></div>
+      <button id="guess-btn" class="primary-btn" disabled>ここに決定</button>
+    </div>
+  </div>
+
+  <!-- ===== ラウンド結果 ===== -->
+  <div id="result-screen" class="screen" style="display:none;">
+    <div id="result-map"></div>
+    <div class="result-card">
+      <div class="result-distance">距離 <b id="result-dist">-</b></div>
+      <div class="result-points">+<b id="result-points">0</b> 点</div>
+      <button id="next-btn" class="primary-btn">次のラウンド →</button>
+    </div>
+  </div>
+
+  <!-- ===== 最終結果 ===== -->
+  <div id="final-screen" class="screen" style="display:none;">
+    <div class="start-card">
+      <h1>🏁 結果発表</h1>
+      <div class="final-score"><span id="final-total">0</span> <span class="of">/ 25000</span></div>
+      <div id="final-breakdown" class="breakdown"></div>
+      <p id="final-rank" class="rank"></p>
+      <button id="replay-btn" class="primary-btn">もう一度プレイ</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

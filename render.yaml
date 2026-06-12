@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: geo-guess-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MAPILLARY_TOKEN
+        sync: false   # Render のダッシュボードで手動設定（秘匿）
+      - key: NODE_VERSION
+        value: 20
+    healthCheckPath: /healthz

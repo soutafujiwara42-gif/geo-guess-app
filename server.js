@@ -2,7 +2,11 @@ import express from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import Protobuf from "pbf";
+import vt from "@mapbox/vector-tile";
 import { resolveRegion, REGIONS, COUNTRIES } from "./regions.js";
+
+const { VectorTile } = vt;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,21 +41,71 @@ app.get("/api/meta", (req, res) => {
 const rand = (min, max) => Math.random() * (max - min) + min;
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-// Mapillary Graph API で bbox 内の画像を取得
-async function fetchImagesInBbox(west, south, east, north, limit = 40) {
-  const url = new URL("https://graph.mapillary.com/images");
-  url.searchParams.set("access_token", MAPILLARY_TOKEN);
-  url.searchParams.set("fields", "id,computed_geometry,thumb_1024_url,captured_at,is_pano");
-  url.searchParams.set("bbox", `${west},${south},${east},${north}`);
-  url.searchParams.set("limit", String(limit));
+// ===== Mapillary ベクタータイルで画像を検索 =====
+// Graph API の bbox 検索は不安定なため、公式ベクタータイル（z14 の image レイヤー）
+// から画像IDと座標を取得し、画像URLは ID 指定の Graph API で取る。
 
-  const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`Mapillary ${resp.status}: ${text.slice(0, 200)}`);
+const TILE_Z = 14;
+
+// 経度緯度 → タイル座標
+function lonLatToTile(lon, lat, z) {
+  const n = 2 ** z;
+  const x = Math.floor(((lon + 180) / 360) * n);
+  const latRad = (lat * Math.PI) / 180;
+  const y = Math.floor(
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n
+  );
+  return { x, y };
+}
+
+// タイルのキャッシュ（タイル1枚が数MBになるため上限を設ける）
+const tileCache = new Map(); // key -> { images: [...], at: timestamp }
+const TILE_CACHE_MAX = 40;
+const TILE_CACHE_TTL = 30 * 60 * 1000; // 30分
+
+async function fetchTileImages(x, y) {
+  const key = `${TILE_Z}/${x}/${y}`;
+  const hit = tileCache.get(key);
+  if (hit && Date.now() - hit.at < TILE_CACHE_TTL) return hit.images;
+
+  const url = `https://tiles.mapillary.com/maps/vtp/mly1_public/2/${TILE_Z}/${x}/${y}?access_token=${encodeURIComponent(MAPILLARY_TOKEN)}`;
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!resp.ok) throw new Error(`Mapillary tiles ${resp.status}`);
+  const buf = Buffer.from(await resp.arrayBuffer());
+
+  const tile = new VectorTile(new Protobuf(buf));
+  const layer = tile.layers.image;
+  const images = [];
+  if (layer) {
+    for (let i = 0; i < layer.length; i++) {
+      const f = layer.feature(i);
+      const geo = f.toGeoJSON(x, y, TILE_Z);
+      if (geo.geometry?.type === "Point" && f.properties?.id) {
+        images.push({
+          id: String(f.properties.id),
+          lon: geo.geometry.coordinates[0],
+          lat: geo.geometry.coordinates[1],
+          isPano: Boolean(f.properties.is_pano),
+        });
+      }
+    }
   }
-  const data = await resp.json();
-  return Array.isArray(data.data) ? data.data : [];
+
+  if (tileCache.size >= TILE_CACHE_MAX) {
+    // 一番古いエントリを削除
+    const oldest = [...tileCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+    if (oldest) tileCache.delete(oldest[0]);
+  }
+  tileCache.set(key, { images, at: Date.now() });
+  return images;
+}
+
+// 画像IDから画像URLを取得（こちらの Graph API は安定して動作する）
+async function fetchImageUrl(imageId) {
+  const url = `https://graph.mapillary.com/${imageId}?access_token=${encodeURIComponent(MAPILLARY_TOKEN)}&fields=id,thumb_1024_url,captured_at,is_pano`;
+  const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+  if (!resp.ok) throw new Error(`Mapillary graph ${resp.status}`);
+  return resp.json();
 }
 
 // 1ラウンド分のランダムな街並み画像を返す
@@ -66,45 +120,40 @@ app.get("/api/round", async (req, res) => {
   const country = req.query.country ? String(req.query.country) : null;
   const cfg = resolveRegion(region, country);
 
-  const maxTries = 10;
+  const maxTries = 6;
+  let lastError = null;
   for (let i = 0; i < maxTries; i++) {
     try {
       const seed = pick(cfg.seeds);
-      // シード周辺をランダムに散らして中心を決める
+      // シード周辺をランダムに散らした地点のタイルを引く
       const cLat = seed.lat + rand(-seed.spread, seed.spread);
       const cLon = seed.lon + rand(-seed.spread, seed.spread);
-      // 試行回数が増えるほど検索範囲を広げる
-      const half = 0.02 + i * 0.006;
-      const images = await fetchImagesInBbox(
-        cLon - half, cLat - half, cLon + half, cLat + half, 50
-      );
-      const usable = images.filter(
-        (im) => im.thumb_1024_url && im.computed_geometry?.coordinates
-      );
-      if (usable.length === 0) continue;
+      const { x, y } = lonLatToTile(cLon, cLat, TILE_Z);
 
-      const img = pick(usable);
-      const [lon, lat] = img.computed_geometry.coordinates;
+      const images = await fetchTileImages(x, y);
+      if (images.length === 0) continue;
+
+      const candidate = pick(images);
+      const detail = await fetchImageUrl(candidate.id);
+      if (!detail.thumb_1024_url) continue;
+
       return res.json({
-        imageId: img.id,
-        imageUrl: img.thumb_1024_url,
-        isPano: Boolean(img.is_pano),
-        capturedAt: img.captured_at || null,
+        imageId: candidate.id,
+        imageUrl: detail.thumb_1024_url,
+        isPano: Boolean(detail.is_pano),
+        capturedAt: detail.captured_at || null,
         // 正解座標（クライアントでスコア計算に使用）
-        lat,
-        lon,
+        lat: candidate.lat,
+        lon: candidate.lon,
         scale: cfg.scale,
         regionLabel: cfg.label,
       });
     } catch (err) {
-      // 最後の試行で失敗したらエラーを返す
-      if (i === maxTries - 1) {
-        return res.status(502).json({ error: `画像取得に失敗しました: ${err.message}` });
-      }
+      lastError = err;
     }
   }
-  return res.status(404).json({
-    error: "画像が見つかりませんでした。もう一度お試しください。",
+  return res.status(502).json({
+    error: `画像が見つかりませんでした。もう一度お試しください。${lastError ? `(${lastError.message})` : ""}`,
   });
 });
 

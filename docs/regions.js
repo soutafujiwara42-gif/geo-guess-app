@@ -1,12 +1,109 @@
-// 出題エリアの定義（メジャースポット・旅行先 拡充版）
-// 各シードは有名ランドマーク・観光地周辺。spread を小さくして「見覚えのある風景」が出やすくしている。
+// 出題エリアの定義
+// 各シードは有名ランドマーク・観光地・市街地周辺。spread を小さくして「見覚えのある風景」が出やすくしている。
 // scale: スコア計算の距離スケール(km)。mapView: 推測マップの初期表示。
 
-export const REGIONS = {
-  kanto: {
-    label: "関東",
-    scale: 80,
-    mapView: { center: [139.65, 35.95], zoom: 7.2 },
+// ===== 47都道府県（県庁所在地の中心街＋観光名所） =====
+export const PREFECTURES = {
+  hokkaido: {
+    label: "北海道", scale: 150, mapView: { center: [142.5, 43.4], zoom: 5.6 },
+    seeds: [
+      { name: "札幌・大通公園", lat: 43.0595, lon: 141.3470, spread: 0.010 },
+      { name: "札幌駅前",       lat: 43.0686, lon: 141.3508, spread: 0.008 },
+      { name: "小樽運河",       lat: 43.1985, lon: 141.0019, spread: 0.008 },
+      { name: "函館・ベイエリア", lat: 41.7687, lon: 140.7170, spread: 0.010 },
+      { name: "旭川駅前",       lat: 43.7628, lon: 142.3650, spread: 0.010 },
+    ],
+  },
+  aomori: {
+    label: "青森県", scale: 60, mapView: { center: [140.7, 40.8], zoom: 7.2 },
+    seeds: [
+      { name: "青森駅前",   lat: 40.8246, lon: 140.7406, spread: 0.010 },
+      { name: "弘前",       lat: 40.6031, lon: 140.4640, spread: 0.010 },
+      { name: "八戸",       lat: 40.5123, lon: 141.4884, spread: 0.010 },
+    ],
+  },
+  iwate: {
+    label: "岩手県", scale: 60, mapView: { center: [141.2, 39.6], zoom: 7.0 },
+    seeds: [
+      { name: "盛岡駅前",   lat: 39.7019, lon: 141.1365, spread: 0.010 },
+      { name: "盛岡・大通", lat: 39.7036, lon: 141.1527, spread: 0.008 },
+      { name: "一関",       lat: 38.9347, lon: 141.1266, spread: 0.010 },
+    ],
+  },
+  miyagi: {
+    label: "宮城県", scale: 50, mapView: { center: [140.9, 38.4], zoom: 7.6 },
+    seeds: [
+      { name: "仙台駅前",     lat: 38.2601, lon: 140.8821, spread: 0.010 },
+      { name: "仙台・国分町", lat: 38.2620, lon: 140.8719, spread: 0.008 },
+      { name: "松島",         lat: 38.3680, lon: 141.0586, spread: 0.010 },
+    ],
+  },
+  akita: {
+    label: "秋田県", scale: 60, mapView: { center: [140.4, 39.7], zoom: 7.0 },
+    seeds: [
+      { name: "秋田駅前",     lat: 39.7168, lon: 140.1320, spread: 0.010 },
+      { name: "秋田市中心部", lat: 39.7200, lon: 140.1233, spread: 0.008 },
+      { name: "横手",         lat: 39.3103, lon: 140.5667, spread: 0.010 },
+    ],
+  },
+  yamagata: {
+    label: "山形県", scale: 50, mapView: { center: [140.1, 38.4], zoom: 7.4 },
+    seeds: [
+      { name: "山形駅前",     lat: 38.2484, lon: 140.3278, spread: 0.010 },
+      { name: "山形市中心部", lat: 38.2554, lon: 140.3396, spread: 0.008 },
+      { name: "米沢",         lat: 37.9222, lon: 140.1168, spread: 0.010 },
+    ],
+  },
+  fukushima: {
+    label: "福島県", scale: 60, mapView: { center: [140.2, 37.5], zoom: 7.2 },
+    seeds: [
+      { name: "福島駅前",   lat: 37.7543, lon: 140.4589, spread: 0.010 },
+      { name: "郡山駅前",   lat: 37.3986, lon: 140.3877, spread: 0.010 },
+      { name: "会津若松",   lat: 37.4948, lon: 139.9298, spread: 0.010 },
+    ],
+  },
+  ibaraki: {
+    label: "茨城県", scale: 50, mapView: { center: [140.3, 36.3], zoom: 7.8 },
+    seeds: [
+      { name: "水戸駅前",   lat: 36.3706, lon: 140.4764, spread: 0.010 },
+      { name: "水戸・偕楽園", lat: 36.3742, lon: 140.4544, spread: 0.010 },
+      { name: "つくば",     lat: 36.0835, lon: 140.0764, spread: 0.010 },
+    ],
+  },
+  tochigi: {
+    label: "栃木県", scale: 50, mapView: { center: [139.8, 36.6], zoom: 7.8 },
+    seeds: [
+      { name: "宇都宮",     lat: 36.5551, lon: 139.8828, spread: 0.010 },
+      { name: "日光・東照宮周辺", lat: 36.7581, lon: 139.5994, spread: 0.012 },
+      { name: "那須塩原",   lat: 36.9618, lon: 140.0460, spread: 0.012 },
+    ],
+  },
+  gunma: {
+    label: "群馬県", scale: 50, mapView: { center: [138.9, 36.4], zoom: 7.8 },
+    seeds: [
+      { name: "前橋",       lat: 36.3895, lon: 139.0634, spread: 0.010 },
+      { name: "高崎",       lat: 36.3228, lon: 139.0128, spread: 0.010 },
+      { name: "草津温泉",   lat: 36.6204, lon: 138.5963, spread: 0.010 },
+    ],
+  },
+  saitama: {
+    label: "埼玉県", scale: 40, mapView: { center: [139.4, 36.0], zoom: 8.2 },
+    seeds: [
+      { name: "大宮駅前",   lat: 35.9063, lon: 139.6236, spread: 0.008 },
+      { name: "川越・小江戸", lat: 35.9251, lon: 139.4859, spread: 0.008 },
+      { name: "秩父",       lat: 35.9919, lon: 139.0848, spread: 0.010 },
+    ],
+  },
+  chiba: {
+    label: "千葉県", scale: 50, mapView: { center: [140.2, 35.5], zoom: 7.8 },
+    seeds: [
+      { name: "千葉駅前",     lat: 35.6133, lon: 140.1133, spread: 0.010 },
+      { name: "成田山新勝寺", lat: 35.7860, lon: 140.3181, spread: 0.008 },
+      { name: "舞浜",         lat: 35.6329, lon: 139.8804, spread: 0.010 },
+    ],
+  },
+  tokyo: {
+    label: "東京都", scale: 25, mapView: { center: [139.72, 35.68], zoom: 9.5 },
     seeds: [
       { name: "東京駅・丸の内",       lat: 35.6812, lon: 139.7671, spread: 0.010 },
       { name: "銀座",                 lat: 35.6717, lon: 139.7650, spread: 0.006 },
@@ -23,29 +120,346 @@ export const REGIONS = {
       { name: "池袋",                 lat: 35.7295, lon: 139.7109, spread: 0.008 },
       { name: "品川駅",               lat: 35.6285, lon: 139.7387, spread: 0.008 },
       { name: "吉祥寺",               lat: 35.7032, lon: 139.5798, spread: 0.008 },
-      { name: "横浜みなとみらい",     lat: 35.4571, lon: 139.6332, spread: 0.010 },
-      { name: "横浜中華街",           lat: 35.4429, lon: 139.6453, spread: 0.006 },
-      { name: "鎌倉・鶴岡八幡宮",     lat: 35.3258, lon: 139.5561, spread: 0.008 },
-      { name: "江の島",               lat: 35.3032, lon: 139.4803, spread: 0.008 },
-      { name: "箱根湯本",             lat: 35.2329, lon: 139.1058, spread: 0.010 },
-      { name: "川越・小江戸",         lat: 35.9251, lon: 139.4859, spread: 0.008 },
-      { name: "秩父",                 lat: 35.9919, lon: 139.0848, spread: 0.010 },
-      { name: "日光・東照宮周辺",     lat: 36.7581, lon: 139.5994, spread: 0.012 },
-      { name: "草津温泉",             lat: 36.6204, lon: 138.5963, spread: 0.010 },
-      { name: "成田山新勝寺",         lat: 35.7860, lon: 140.3181, spread: 0.008 },
-      { name: "水戸・偕楽園",         lat: 36.3742, lon: 140.4544, spread: 0.010 },
     ],
   },
+  kanagawa: {
+    label: "神奈川県", scale: 35, mapView: { center: [139.4, 35.4], zoom: 8.6 },
+    seeds: [
+      { name: "横浜みなとみらい", lat: 35.4571, lon: 139.6332, spread: 0.010 },
+      { name: "横浜中華街",       lat: 35.4429, lon: 139.6453, spread: 0.006 },
+      { name: "鎌倉・鶴岡八幡宮", lat: 35.3258, lon: 139.5561, spread: 0.008 },
+      { name: "江の島",           lat: 35.3032, lon: 139.4803, spread: 0.008 },
+      { name: "箱根湯本",         lat: 35.2329, lon: 139.1058, spread: 0.010 },
+    ],
+  },
+  niigata: {
+    label: "新潟県", scale: 70, mapView: { center: [138.9, 37.6], zoom: 6.8 },
+    seeds: [
+      { name: "新潟駅前",   lat: 37.9122, lon: 139.0619, spread: 0.010 },
+      { name: "新潟・古町", lat: 37.9221, lon: 139.0455, spread: 0.008 },
+      { name: "長岡",       lat: 37.4462, lon: 138.8513, spread: 0.010 },
+    ],
+  },
+  toyama: {
+    label: "富山県", scale: 40, mapView: { center: [137.2, 36.6], zoom: 8.0 },
+    seeds: [
+      { name: "富山駅前",   lat: 36.7012, lon: 137.2137, spread: 0.010 },
+      { name: "富山城址公園周辺", lat: 36.6959, lon: 137.2114, spread: 0.008 },
+      { name: "高岡",       lat: 36.7541, lon: 137.0257, spread: 0.010 },
+    ],
+  },
+  ishikawa: {
+    label: "石川県", scale: 50, mapView: { center: [136.7, 36.7], zoom: 7.6 },
+    seeds: [
+      { name: "金沢・近江町市場",   lat: 36.5719, lon: 136.6560, spread: 0.008 },
+      { name: "金沢・ひがし茶屋街", lat: 36.5727, lon: 136.6669, spread: 0.006 },
+      { name: "金沢・兼六園周辺",   lat: 36.5621, lon: 136.6624, spread: 0.008 },
+      { name: "金沢駅前",           lat: 36.5780, lon: 136.6486, spread: 0.008 },
+    ],
+  },
+  fukui: {
+    label: "福井県", scale: 50, mapView: { center: [136.2, 35.9], zoom: 7.8 },
+    seeds: [
+      { name: "福井駅前",   lat: 36.0621, lon: 136.2233, spread: 0.010 },
+      { name: "敦賀",       lat: 35.6452, lon: 136.0555, spread: 0.010 },
+    ],
+  },
+  yamanashi: {
+    label: "山梨県", scale: 40, mapView: { center: [138.6, 35.6], zoom: 8.0 },
+    seeds: [
+      { name: "甲府駅前",   lat: 35.6669, lon: 138.5687, spread: 0.010 },
+      { name: "富士河口湖", lat: 35.5103, lon: 138.7689, spread: 0.012 },
+      { name: "富士吉田",   lat: 35.4869, lon: 138.8079, spread: 0.010 },
+    ],
+  },
+  nagano: {
+    label: "長野県", scale: 70, mapView: { center: [138.0, 36.2], zoom: 6.9 },
+    seeds: [
+      { name: "長野駅前",   lat: 36.6431, lon: 138.1886, spread: 0.010 },
+      { name: "善光寺",     lat: 36.6617, lon: 138.1877, spread: 0.008 },
+      { name: "松本城",     lat: 36.2380, lon: 137.9720, spread: 0.008 },
+      { name: "軽井沢",     lat: 36.3483, lon: 138.6353, spread: 0.010 },
+    ],
+  },
+  gifu: {
+    label: "岐阜県", scale: 60, mapView: { center: [137.0, 35.9], zoom: 7.2 },
+    seeds: [
+      { name: "岐阜駅前",       lat: 35.4095, lon: 136.7565, spread: 0.010 },
+      { name: "高山・古い町並み", lat: 36.1408, lon: 137.2520, spread: 0.008 },
+      { name: "白川郷",         lat: 36.2580, lon: 136.9066, spread: 0.010 },
+    ],
+  },
+  shizuoka: {
+    label: "静岡県", scale: 60, mapView: { center: [138.4, 35.0], zoom: 7.4 },
+    seeds: [
+      { name: "静岡駅前",   lat: 34.9719, lon: 138.3890, spread: 0.010 },
+      { name: "浜松駅前",   lat: 34.7038, lon: 137.7340, spread: 0.010 },
+      { name: "熱海",       lat: 35.1042, lon: 139.0738, spread: 0.010 },
+    ],
+  },
+  aichi: {
+    label: "愛知県", scale: 40, mapView: { center: [137.0, 35.1], zoom: 8.2 },
+    seeds: [
+      { name: "名古屋・栄",   lat: 35.1681, lon: 136.9080, spread: 0.010 },
+      { name: "名古屋駅前",   lat: 35.1709, lon: 136.8816, spread: 0.008 },
+      { name: "名古屋・大須", lat: 35.1597, lon: 136.9000, spread: 0.008 },
+      { name: "犬山城下町",   lat: 35.3886, lon: 136.9447, spread: 0.008 },
+    ],
+  },
+  mie: {
+    label: "三重県", scale: 50, mapView: { center: [136.5, 34.6], zoom: 7.6 },
+    seeds: [
+      { name: "伊勢神宮・おはらい町", lat: 34.4549, lon: 136.7253, spread: 0.008 },
+      { name: "津駅前",       lat: 34.7320, lon: 136.5086, spread: 0.010 },
+      { name: "四日市",       lat: 34.9652, lon: 136.6245, spread: 0.010 },
+    ],
+  },
+  shiga: {
+    label: "滋賀県", scale: 40, mapView: { center: [136.1, 35.2], zoom: 8.0 },
+    seeds: [
+      { name: "大津駅前",   lat: 35.0036, lon: 135.8616, spread: 0.010 },
+      { name: "彦根城周辺", lat: 35.2766, lon: 136.2517, spread: 0.008 },
+      { name: "長浜",       lat: 35.3814, lon: 136.2773, spread: 0.008 },
+    ],
+  },
+  kyoto: {
+    label: "京都府", scale: 30, mapView: { center: [135.75, 35.0], zoom: 8.8 },
+    seeds: [
+      { name: "京都・祇園",     lat: 35.0037, lon: 135.7780, spread: 0.008 },
+      { name: "京都・嵐山",     lat: 35.0094, lon: 135.6722, spread: 0.008 },
+      { name: "京都・金閣寺",   lat: 35.0394, lon: 135.7292, spread: 0.008 },
+      { name: "京都・伏見稲荷", lat: 34.9671, lon: 135.7727, spread: 0.008 },
+      { name: "京都駅前",       lat: 34.9858, lon: 135.7585, spread: 0.008 },
+      { name: "京都・清水寺周辺", lat: 34.9949, lon: 135.7850, spread: 0.008 },
+    ],
+  },
+  osaka: {
+    label: "大阪府", scale: 25, mapView: { center: [135.5, 34.65], zoom: 9.2 },
+    seeds: [
+      { name: "大阪・道頓堀",   lat: 34.6687, lon: 135.5013, spread: 0.008 },
+      { name: "大阪・新世界",   lat: 34.6525, lon: 135.5063, spread: 0.006 },
+      { name: "梅田",           lat: 34.7025, lon: 135.4959, spread: 0.008 },
+      { name: "大阪城公園",     lat: 34.6873, lon: 135.5262, spread: 0.010 },
+      { name: "アメリカ村",     lat: 34.6726, lon: 135.4985, spread: 0.006 },
+    ],
+  },
+  hyogo: {
+    label: "兵庫県", scale: 50, mapView: { center: [134.9, 34.9], zoom: 7.6 },
+    seeds: [
+      { name: "神戸・三宮",           lat: 34.6913, lon: 135.1955, spread: 0.010 },
+      { name: "神戸ハーバーランド",   lat: 34.6796, lon: 135.1788, spread: 0.008 },
+      { name: "姫路城",               lat: 34.8394, lon: 134.6939, spread: 0.008 },
+      { name: "有馬温泉",             lat: 34.7975, lon: 135.2478, spread: 0.008 },
+    ],
+  },
+  nara: {
+    label: "奈良県", scale: 40, mapView: { center: [135.8, 34.5], zoom: 8.0 },
+    seeds: [
+      { name: "奈良公園",   lat: 34.6851, lon: 135.8430, spread: 0.010 },
+      { name: "ならまち",   lat: 34.6794, lon: 135.8296, spread: 0.006 },
+      { name: "橿原",       lat: 34.4892, lon: 135.7925, spread: 0.010 },
+    ],
+  },
+  wakayama: {
+    label: "和歌山県", scale: 50, mapView: { center: [135.4, 34.0], zoom: 7.6 },
+    seeds: [
+      { name: "和歌山駅前", lat: 34.2321, lon: 135.1908, spread: 0.010 },
+      { name: "和歌山城周辺", lat: 34.2284, lon: 135.1716, spread: 0.008 },
+      { name: "高野山",     lat: 34.2130, lon: 135.5841, spread: 0.010 },
+    ],
+  },
+  tottori: {
+    label: "鳥取県", scale: 50, mapView: { center: [133.8, 35.4], zoom: 7.8 },
+    seeds: [
+      { name: "鳥取駅前",   lat: 35.4938, lon: 134.2226, spread: 0.010 },
+      { name: "米子",       lat: 35.4281, lon: 133.3310, spread: 0.010 },
+    ],
+  },
+  shimane: {
+    label: "島根県", scale: 60, mapView: { center: [132.8, 35.3], zoom: 7.4 },
+    seeds: [
+      { name: "松江",       lat: 35.4660, lon: 133.0635, spread: 0.010 },
+      { name: "出雲大社周辺", lat: 35.4017, lon: 132.6855, spread: 0.010 },
+      { name: "出雲市駅前", lat: 35.3656, lon: 132.7575, spread: 0.010 },
+    ],
+  },
+  okayama: {
+    label: "岡山県", scale: 50, mapView: { center: [133.8, 34.8], zoom: 7.8 },
+    seeds: [
+      { name: "岡山駅前",     lat: 34.6659, lon: 133.9180, spread: 0.010 },
+      { name: "岡山・後楽園周辺", lat: 34.6675, lon: 133.9360, spread: 0.008 },
+      { name: "倉敷美観地区", lat: 34.5953, lon: 133.7720, spread: 0.008 },
+    ],
+  },
+  hiroshima: {
+    label: "広島県", scale: 50, mapView: { center: [132.7, 34.4], zoom: 7.6 },
+    seeds: [
+      { name: "広島・原爆ドーム", lat: 34.3955, lon: 132.4536, spread: 0.008 },
+      { name: "広島駅前",         lat: 34.3978, lon: 132.4757, spread: 0.010 },
+      { name: "宮島・厳島神社",   lat: 34.2960, lon: 132.3199, spread: 0.008 },
+      { name: "尾道",             lat: 34.4090, lon: 133.2050, spread: 0.010 },
+    ],
+  },
+  yamaguchi: {
+    label: "山口県", scale: 60, mapView: { center: [131.5, 34.2], zoom: 7.4 },
+    seeds: [
+      { name: "下関・唐戸",     lat: 33.9560, lon: 130.9410, spread: 0.010 },
+      { name: "山口駅前",       lat: 34.1740, lon: 131.4737, spread: 0.010 },
+      { name: "岩国・錦帯橋周辺", lat: 34.1670, lon: 132.1772, spread: 0.008 },
+    ],
+  },
+  tokushima: {
+    label: "徳島県", scale: 40, mapView: { center: [134.4, 33.9], zoom: 7.8 },
+    seeds: [
+      { name: "徳島駅前",   lat: 34.0746, lon: 134.5510, spread: 0.010 },
+      { name: "鳴門",       lat: 34.1726, lon: 134.6090, spread: 0.010 },
+    ],
+  },
+  kagawa: {
+    label: "香川県", scale: 30, mapView: { center: [134.0, 34.3], zoom: 8.4 },
+    seeds: [
+      { name: "高松駅前",       lat: 34.3508, lon: 134.0466, spread: 0.010 },
+      { name: "高松・商店街",   lat: 34.3428, lon: 134.0466, spread: 0.008 },
+      { name: "琴平・こんぴらさん周辺", lat: 34.1873, lon: 133.8201, spread: 0.008 },
+    ],
+  },
+  ehime: {
+    label: "愛媛県", scale: 50, mapView: { center: [132.8, 33.8], zoom: 7.6 },
+    seeds: [
+      { name: "松山・道後温泉", lat: 33.8520, lon: 132.7860, spread: 0.008 },
+      { name: "松山市駅前",     lat: 33.8392, lon: 132.7657, spread: 0.010 },
+      { name: "今治",           lat: 34.0663, lon: 132.9978, spread: 0.010 },
+    ],
+  },
+  kochi: {
+    label: "高知県", scale: 60, mapView: { center: [133.5, 33.5], zoom: 7.4 },
+    seeds: [
+      { name: "高知駅前",       lat: 33.5664, lon: 133.5434, spread: 0.010 },
+      { name: "はりまや橋",     lat: 33.5597, lon: 133.5430, spread: 0.008 },
+    ],
+  },
+  fukuoka: {
+    label: "福岡県", scale: 40, mapView: { center: [130.6, 33.6], zoom: 8.0 },
+    seeds: [
+      { name: "福岡・天神",   lat: 33.5914, lon: 130.3989, spread: 0.010 },
+      { name: "博多駅前",     lat: 33.5897, lon: 130.4207, spread: 0.008 },
+      { name: "太宰府天満宮", lat: 33.5196, lon: 130.5350, spread: 0.008 },
+      { name: "門司港レトロ", lat: 33.9460, lon: 130.9620, spread: 0.008 },
+    ],
+  },
+  saga: {
+    label: "佐賀県", scale: 40, mapView: { center: [130.1, 33.3], zoom: 8.0 },
+    seeds: [
+      { name: "佐賀駅前",   lat: 33.2644, lon: 130.2988, spread: 0.010 },
+      { name: "唐津",       lat: 33.4503, lon: 129.9680, spread: 0.010 },
+    ],
+  },
+  nagasaki: {
+    label: "長崎県", scale: 60, mapView: { center: [129.9, 33.0], zoom: 7.4 },
+    seeds: [
+      { name: "長崎・グラバー園周辺", lat: 32.7341, lon: 129.8699, spread: 0.010 },
+      { name: "長崎駅前",             lat: 32.7503, lon: 129.8779, spread: 0.010 },
+      { name: "佐世保",               lat: 33.1683, lon: 129.7253, spread: 0.010 },
+    ],
+  },
+  kumamoto: {
+    label: "熊本県", scale: 50, mapView: { center: [130.7, 32.7], zoom: 7.6 },
+    seeds: [
+      { name: "熊本城周辺",   lat: 32.8062, lon: 130.7058, spread: 0.008 },
+      { name: "熊本・下通",   lat: 32.8000, lon: 130.7080, spread: 0.008 },
+    ],
+  },
+  oita: {
+    label: "大分県", scale: 50, mapView: { center: [131.4, 33.2], zoom: 7.6 },
+    seeds: [
+      { name: "別府温泉",   lat: 33.2796, lon: 131.5000, spread: 0.010 },
+      { name: "由布院",     lat: 33.2646, lon: 131.3544, spread: 0.010 },
+      { name: "大分駅前",   lat: 33.2335, lon: 131.6064, spread: 0.010 },
+    ],
+  },
+  miyazaki: {
+    label: "宮崎県", scale: 60, mapView: { center: [131.4, 32.1], zoom: 7.4 },
+    seeds: [
+      { name: "宮崎駅前",     lat: 31.9156, lon: 131.4317, spread: 0.010 },
+      { name: "宮崎市中心部", lat: 31.9077, lon: 131.4202, spread: 0.008 },
+      { name: "青島",         lat: 31.8049, lon: 131.4684, spread: 0.010 },
+    ],
+  },
+  kagoshima: {
+    label: "鹿児島県", scale: 70, mapView: { center: [130.6, 31.6], zoom: 7.2 },
+    seeds: [
+      { name: "鹿児島・天文館",   lat: 31.5900, lon: 130.5571, spread: 0.008 },
+      { name: "鹿児島中央駅前",   lat: 31.5836, lon: 130.5419, spread: 0.008 },
+      { name: "指宿",             lat: 31.2526, lon: 130.6330, spread: 0.012 },
+    ],
+  },
+  okinawa: {
+    label: "沖縄県", scale: 60, mapView: { center: [127.8, 26.4], zoom: 7.8 },
+    seeds: [
+      { name: "那覇・国際通り",       lat: 26.2146, lon: 127.6869, spread: 0.008 },
+      { name: "首里城周辺",           lat: 26.2173, lon: 127.7195, spread: 0.008 },
+      { name: "北谷・アメリカンビレッジ", lat: 26.3158, lon: 127.7561, spread: 0.008 },
+      { name: "名護",                 lat: 26.5917, lon: 127.9774, spread: 0.012 },
+    ],
+  },
+};
 
+// ===== 地方（都道府県の組み合わせ） =====
+export const JP_AREAS = {
+  hokkaido: {
+    label: "北海道", scale: 150,
+    mapView: { center: [142.5, 43.4], zoom: 5.6 },
+    prefs: ["hokkaido"],
+  },
+  tohoku: {
+    label: "東北", scale: 200,
+    mapView: { center: [140.7, 39.0], zoom: 5.8 },
+    prefs: ["aomori", "iwate", "miyagi", "akita", "yamagata", "fukushima"],
+  },
+  kanto: {
+    label: "関東", scale: 80,
+    mapView: { center: [139.65, 35.95], zoom: 7.2 },
+    prefs: ["ibaraki", "tochigi", "gunma", "saitama", "chiba", "tokyo", "kanagawa"],
+  },
+  chubu: {
+    label: "中部", scale: 150,
+    mapView: { center: [137.7, 36.1], zoom: 6.2 },
+    prefs: ["niigata", "toyama", "ishikawa", "fukui", "yamanashi", "nagano", "gifu", "shizuoka", "aichi"],
+  },
+  kinki: {
+    label: "近畿", scale: 100,
+    mapView: { center: [135.6, 34.6], zoom: 7.0 },
+    prefs: ["mie", "shiga", "kyoto", "osaka", "hyogo", "nara", "wakayama"],
+  },
+  chugoku: {
+    label: "中国", scale: 120,
+    mapView: { center: [132.9, 34.8], zoom: 6.8 },
+    prefs: ["tottori", "shimane", "okayama", "hiroshima", "yamaguchi"],
+  },
+  shikoku: {
+    label: "四国", scale: 100,
+    mapView: { center: [133.5, 33.7], zoom: 7.0 },
+    prefs: ["tokushima", "kagawa", "ehime", "kochi"],
+  },
+  kyushu: {
+    label: "九州・沖縄", scale: 250,
+    mapView: { center: [130.3, 30.8], zoom: 5.4 },
+    prefs: ["fukuoka", "saga", "nagasaki", "kumamoto", "oita", "miyazaki", "kagoshima", "okinawa"],
+  },
+};
+
+// ===== 全国・世界 =====
+export const REGIONS = {
   japan: {
     label: "日本",
     scale: 500,
     mapView: { center: [137.2, 38.0], zoom: 4.3 },
+    // 全国の有名観光地（47都道府県のシードから主要どころを集約しても良いが、
+    // 旅行先として名高いスポットを厳選）
     seeds: [
       { name: "札幌・大通公園",       lat: 43.0595, lon: 141.3470, spread: 0.010 },
       { name: "小樽運河",             lat: 43.1985, lon: 141.0019, spread: 0.008 },
       { name: "函館・ベイエリア",     lat: 41.7687, lon: 140.7170, spread: 0.010 },
-      { name: "青森駅前",             lat: 40.8246, lon: 140.7406, spread: 0.010 },
       { name: "仙台駅前",             lat: 38.2601, lon: 140.8821, spread: 0.010 },
       { name: "松島",                 lat: 38.3680, lon: 141.0586, spread: 0.010 },
       { name: "日光・東照宮周辺",     lat: 36.7581, lon: 139.5994, spread: 0.012 },
@@ -152,7 +566,7 @@ export const REGIONS = {
   },
 };
 
-// 国別モード：国コード -> シード（各国のメジャースポット・観光地）
+// ===== 国別モード：国コード -> シード（各国のメジャースポット・観光地） =====
 export const COUNTRIES = {
   jp: {
     label: "日本", scale: 500,
@@ -434,9 +848,23 @@ export const COUNTRIES = {
 COUNTRIES.jp.seeds = REGIONS.japan.seeds;
 
 // region 指定からシード配列・スケール・初期表示を取得
-export function resolveRegion(region, country) {
-  if (region === "country" && country && COUNTRIES[country]) {
-    return COUNTRIES[country];
+// region: "japan" | "world" | "area" | "pref" | "country"
+// sub: area/pref/country の各コード
+export function resolveRegion(region, sub) {
+  if (region === "pref" && sub && PREFECTURES[sub]) {
+    return PREFECTURES[sub];
+  }
+  if (region === "area" && sub && JP_AREAS[sub]) {
+    const a = JP_AREAS[sub];
+    return {
+      label: a.label,
+      scale: a.scale,
+      mapView: a.mapView,
+      seeds: a.prefs.flatMap((p) => PREFECTURES[p].seeds),
+    };
+  }
+  if (region === "country" && sub && COUNTRIES[sub]) {
+    return COUNTRIES[sub];
   }
   if (REGIONS[region]) return REGIONS[region];
   return REGIONS.world;

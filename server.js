@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import Protobuf from "pbf";
 import vt from "@mapbox/vector-tile";
-import { resolveRegion, REGIONS, COUNTRIES } from "./regions.js";
+import { resolveRegion, REGIONS, COUNTRIES, JP_AREAS, PREFECTURES } from "./regions.js";
 
 const { VectorTile } = vt;
 
@@ -30,11 +30,13 @@ const MAPILLARY_TOKEN = process.env.MAPILLARY_TOKEN || "";
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// 利用可能な地域・国の一覧をフロントに渡す
+// 利用可能な地域・地方・都道府県・国の一覧をフロントに渡す
 app.get("/api/meta", (req, res) => {
   const regions = Object.entries(REGIONS).map(([id, r]) => ({ id, label: r.label }));
+  const areas = Object.entries(JP_AREAS).map(([id, a]) => ({ id, label: a.label }));
+  const prefectures = Object.entries(PREFECTURES).map(([id, p]) => ({ id, label: p.label }));
   const countries = Object.entries(COUNTRIES).map(([id, c]) => ({ id, label: c.label }));
-  res.json({ regions, countries, hasToken: Boolean(MAPILLARY_TOKEN) });
+  res.json({ regions, areas, prefectures, countries, hasToken: Boolean(MAPILLARY_TOKEN) });
 });
 
 // 乱数ユーティリティ
@@ -129,8 +131,13 @@ app.get("/api/round", async (req, res) => {
   }
 
   const region = String(req.query.region || "world");
-  const country = req.query.country ? String(req.query.country) : null;
-  const cfg = resolveRegion(region, country);
+  // sub: 地方/都道府県/国のコード（旧 country パラメータも後方互換で受ける）
+  const sub = req.query.sub
+    ? String(req.query.sub)
+    : req.query.country
+      ? String(req.query.country)
+      : null;
+  const cfg = resolveRegion(region, sub);
 
   const maxTries = 6;
   let lastError = null;

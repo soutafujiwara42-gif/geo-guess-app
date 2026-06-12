@@ -1,7 +1,7 @@
 // ====== GeoGuess（静的版：サーバー不要、すべてブラウザで完結） ======
 import Pbf from "https://esm.sh/pbf@3.2.1";
 import { VectorTile } from "https://esm.sh/@mapbox/vector-tile@1.3.1";
-import { REGIONS, COUNTRIES, resolveRegion } from "./regions.js";
+import { REGIONS, COUNTRIES, JP_AREAS, PREFECTURES, resolveRegion } from "./regions.js";
 
 // Mapillary Client Token（クライアント埋め込み前提のトークン）
 const MAPILLARY_TOKEN = "MLY|36126941630253864|1df0cb9428ee2709434da1933908fb89";
@@ -131,8 +131,16 @@ async function getRound(region, country) {
 // ===== 先読み（次のラウンドを裏で取得して表示を高速化） =====
 let prefetched = null; // { key, promise }
 
+// 現在の選択モードに対応するサブコード（地方/都道府県/国）
+function subFor() {
+  if (state.region === "area") return state.area;
+  if (state.region === "pref") return state.pref;
+  if (state.region === "country") return state.country;
+  return null;
+}
+
 function roundKey() {
-  return state.region + ":" + (state.region === "country" ? state.country : "");
+  return state.region + ":" + (subFor() || "");
 }
 
 function preloadImages(urls) {
@@ -143,7 +151,7 @@ function startPrefetch() {
   const key = roundKey();
   prefetched = {
     key,
-    promise: getRound(state.region, state.region === "country" ? state.country : null)
+    promise: getRound(state.region, subFor())
       .then((d) => { preloadImages(d.imageUrls); return d; })
       .catch(() => null),
   };
@@ -156,15 +164,17 @@ async function obtainRound() {
     if (d) return d;
   }
   prefetched = null;
-  const d = await getRound(state.region, state.region === "country" ? state.country : null);
+  const d = await getRound(state.region, subFor());
   preloadImages(d.imageUrls);
   return d;
 }
 
 // ===== ゲーム状態・UI（Render版 public/app.js と同等） =====
 const state = {
-  region: "kanto",
-  country: null,
+  region: "area",   // "area" | "pref" | "japan" | "country" | "world"
+  area: "kanto",
+  pref: "tokyo",
+  country: "jp",
   timeLimit: 0,
   round: 0,
   total: 0,
@@ -196,51 +206,62 @@ function show(name) {
 }
 
 // ====== 初期化（静的版：regions.js から直接構築） ======
+const REGION_TABS = [
+  { id: "area",    label: "地方" },
+  { id: "pref",    label: "都道府県" },
+  { id: "japan",   label: "日本全国" },
+  { id: "country", label: "国別" },
+  { id: "world",   label: "世界中" },
+];
+
 function init() {
-  const regions = Object.entries(REGIONS).map(([id, r]) => ({ id, label: r.label }));
-  const countries = Object.entries(COUNTRIES).map(([id, c]) => ({ id, label: c.label }));
-  buildRegionButtons(regions);
-  buildCountrySelect(countries);
+  buildRegionButtons();
+  buildSelect("area-select", Object.entries(JP_AREAS).map(([id, a]) => ({ id, label: a.label })), "area");
+  buildSelect("pref-select", Object.entries(PREFECTURES).map(([id, p]) => ({ id, label: p.label })), "pref");
+  buildSelect("country-select", Object.entries(COUNTRIES).map(([id, c]) => ({ id, label: c.label })), "country");
+  updateSubFields();
   startPrefetch(); // 初期エリアの1問目を先読み
 }
 
-function buildRegionButtons(regions) {
+function updateSubFields() {
+  $("area-field").style.display = state.region === "area" ? "block" : "none";
+  $("pref-field").style.display = state.region === "pref" ? "block" : "none";
+  $("country-field").style.display = state.region === "country" ? "block" : "none";
+}
+
+function buildRegionButtons() {
   const container = $("region-buttons");
   container.innerHTML = "";
-  const list = [...regions];
-  if (!list.find((r) => r.id === "country")) {
-    list.splice(list.length - 1, 0, { id: "country", label: "国別" });
-  }
-  list.forEach((r, i) => {
+  REGION_TABS.forEach((r) => {
     const b = document.createElement("button");
-    b.className = "opt-btn" + (i === 0 ? " active" : "");
+    b.className = "opt-btn" + (r.id === state.region ? " active" : "");
     b.textContent = r.label;
     b.dataset.region = r.id;
     b.onclick = () => {
       container.querySelectorAll(".opt-btn").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
       state.region = r.id;
-      $("country-field").style.display = r.id === "country" ? "block" : "none";
+      updateSubFields();
       startPrefetch(); // エリア選択した時点で1問目を先読み
     };
     container.appendChild(b);
   });
-  state.region = list[0]?.id || "world";
 }
 
-function buildCountrySelect(countries) {
-  const sel = $("country-select");
+// 地方・都道府県・国の選択リストを共通の作りで構築
+function buildSelect(selectId, items, stateKey) {
+  const sel = $(selectId);
   sel.innerHTML = "";
-  countries.forEach((c) => {
+  items.forEach((c) => {
     const o = document.createElement("option");
     o.value = c.id;
     o.textContent = c.label;
     sel.appendChild(o);
   });
-  state.country = countries[0]?.id || null;
+  sel.value = state[stateKey];
   sel.onchange = () => {
-    state.country = sel.value;
-    if (state.region === "country") startPrefetch();
+    state[stateKey] = sel.value;
+    startPrefetch();
   };
 }
 

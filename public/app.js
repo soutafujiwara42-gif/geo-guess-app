@@ -4,8 +4,10 @@ const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
 // ゲーム状態
 const state = {
-  region: "world",
-  country: null,
+  region: "area",   // "area" | "pref" | "japan" | "country" | "world"
+  area: "kanto",
+  pref: "tokyo",
+  country: "jp",
   timeLimit: 0,
   round: 0,
   total: 0,
@@ -37,76 +39,92 @@ function show(name) {
   });
 }
 
-// ====== 初期化：エリア・国リストを取得 ======
+// ====== 初期化：地方・都道府県・国リストを取得 ======
+const REGION_TABS = [
+  { id: "area",    label: "地方" },
+  { id: "pref",    label: "都道府県" },
+  { id: "japan",   label: "日本全国" },
+  { id: "country", label: "国別" },
+  { id: "world",   label: "世界中" },
+];
+
 async function init() {
+  buildRegionButtons();
   try {
     const meta = await fetch("/api/meta").then((r) => r.json());
-    buildRegionButtons(meta.regions);
-    buildCountrySelect(meta.countries);
+    buildSelect("area-select", meta.areas, "area");
+    buildSelect("pref-select", meta.prefectures, "pref");
+    buildSelect("country-select", meta.countries, "country");
     if (!meta.hasToken) $("token-warning").style.display = "block";
+    updateSubFields();
     startPrefetch(); // 初期エリアの1問目を先読み
   } catch (e) {
-    // フォールバック（API失敗時）
-    buildRegionButtons([
-      { id: "kanto", label: "関東" },
-      { id: "japan", label: "日本" },
-      { id: "country", label: "国別" },
-      { id: "world", label: "世界中" },
-    ]);
+    $("token-warning").textContent = "サーバーに接続できませんでした。再読み込みしてください。";
+    $("token-warning").style.display = "block";
   }
 }
 
-function buildRegionButtons(regions) {
+function updateSubFields() {
+  $("area-field").style.display = state.region === "area" ? "block" : "none";
+  $("pref-field").style.display = state.region === "pref" ? "block" : "none";
+  $("country-field").style.display = state.region === "country" ? "block" : "none";
+}
+
+function buildRegionButtons() {
   const container = $("region-buttons");
   container.innerHTML = "";
-  // 関東/日本/国別/世界 の順に整える
-  const list = [...regions];
-  if (!list.find((r) => r.id === "country")) {
-    list.splice(list.length - 1, 0, { id: "country", label: "国別" });
-  }
-  list.forEach((r, i) => {
+  REGION_TABS.forEach((r) => {
     const b = document.createElement("button");
-    b.className = "opt-btn" + (i === 0 ? " active" : "");
+    b.className = "opt-btn" + (r.id === state.region ? " active" : "");
     b.textContent = r.label;
     b.dataset.region = r.id;
     b.onclick = () => {
       container.querySelectorAll(".opt-btn").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
       state.region = r.id;
-      $("country-field").style.display = r.id === "country" ? "block" : "none";
+      updateSubFields();
       startPrefetch(); // エリア選択した時点で1問目を先読み
     };
     container.appendChild(b);
   });
-  state.region = list[0]?.id || "world";
 }
 
-function buildCountrySelect(countries) {
-  const sel = $("country-select");
+// 地方・都道府県・国の選択リストを共通の作りで構築
+function buildSelect(selectId, items, stateKey) {
+  const sel = $(selectId);
   sel.innerHTML = "";
-  countries.forEach((c) => {
+  (items || []).forEach((c) => {
     const o = document.createElement("option");
     o.value = c.id;
     o.textContent = c.label;
     sel.appendChild(o);
   });
-  state.country = countries[0]?.id || null;
+  sel.value = state[stateKey];
   sel.onchange = () => {
-    state.country = sel.value;
-    if (state.region === "country") startPrefetch();
+    state[stateKey] = sel.value;
+    startPrefetch();
   };
 }
 
 // ===== 先読み（次のラウンドを裏で取得して表示を高速化） =====
 let prefetched = null; // { key, promise }
 
+// 現在の選択モードに対応するサブコード（地方/都道府県/国）
+function subFor() {
+  if (state.region === "area") return state.area;
+  if (state.region === "pref") return state.pref;
+  if (state.region === "country") return state.country;
+  return null;
+}
+
 function roundKey() {
-  return state.region + ":" + (state.region === "country" ? state.country : "");
+  return state.region + ":" + (subFor() || "");
 }
 
 function fetchRoundData() {
   const q = new URLSearchParams({ region: state.region });
-  if (state.region === "country" && state.country) q.set("country", state.country);
+  const sub = subFor();
+  if (sub) q.set("sub", sub);
   return fetch("/api/round?" + q.toString())
     .then((r) => r.json())
     .then((data) => {

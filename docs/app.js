@@ -75,53 +75,79 @@ function distanceKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// 出題範囲・分かりやすさの調整パラメータ
+const SPREAD_SCALE = 4;      // シード周辺を広く散らして出題エリアの偏りを減らす
+const MIN_TILE_IMAGES = 12;  // 画像が密なタイル＝市街地で分かりやすい。少ないタイル(郊外)は避ける
+
+// タイル内から「近くに別写真がある地点」を優先して候補を選ぶ
+// → 複数写真で手がかりが増え、撮影が多い＝見覚えのある場所になりやすい
+function pickCandidateWithNearby(images) {
+  let candidate = pick(images);
+  let nearby = [];
+  for (let t = 0; t < 6; t++) {
+    const c = pick(images);
+    const nb = images.filter(
+      (im) => im.id !== c.id && distanceKm(c.lat, c.lon, im.lat, im.lon) < 0.25
+    );
+    if (nb.length > nearby.length) { candidate = c; nearby = nb; }
+    if (nearby.length >= 4) break;
+  }
+  return { candidate, nearby: nearby.sort(() => Math.random() - 0.5).slice(0, 4) };
+}
+
+// タイルの画像群から1ラウンド分のお題（メイン＋近接写真）を組み立てる
+async function buildRound(images, cfg) {
+  const { candidate, nearby } = pickCandidateWithNearby(images);
+  const ids = [candidate.id, ...nearby.map((n) => n.id)];
+  const details = await Promise.all(
+    ids.map((id) => fetchImageUrl(id).catch(() => null))
+  );
+  const imageUrls = details
+    .filter((d) => d && d.thumb_1024_url)
+    .map((d) => d.thumb_1024_url);
+  if (imageUrls.length === 0) return null;
+  return {
+    imageId: candidate.id,
+    imageUrls,
+    lat: candidate.lat,
+    lon: candidate.lon,
+    scale: cfg.scale,
+    regionLabel: cfg.label,
+    mapView: cfg.mapView || { center: [0, 20], zoom: 1 },
+  };
+}
+
 // 1ラウンド分のお題を取得（旧 /api/round 相当）
 async function getRound(region, country) {
   const cfg = resolveRegion(region, country);
-  const maxTries = 6;
+  const maxTries = 10;
   let lastError = null;
+  let best = null; // 最も画像が多かったタイル（密なタイルが見つからない時のフォールバック）
   for (let i = 0; i < maxTries; i++) {
     try {
       const seed = pick(cfg.seeds);
-      const cLat = seed.lat + rand(-seed.spread, seed.spread);
-      const cLon = seed.lon + rand(-seed.spread, seed.spread);
+      // シード周辺を広めに散らす（出題エリアを広げて偏りを減らす）
+      const spread = seed.spread * SPREAD_SCALE;
+      const cLat = seed.lat + rand(-spread, spread);
+      const cLon = seed.lon + rand(-spread, spread);
       const { x, y } = lonLatToTile(cLon, cLat, TILE_Z);
 
       const images = await fetchTileImages(x, y);
       if (images.length === 0) continue;
+      if (!best || images.length > best.length) best = images;
+      // 画像が少ない（＝郊外で分かりにくい）タイルは避け、密な市街地を探す
+      if (images.length < MIN_TILE_IMAGES) continue;
 
-      // メイン1枚＋同じ場所(250m以内)の別写真を最大4枚追加
-      const candidate = pick(images);
-      const nearby = images
-        .filter(
-          (im) =>
-            im.id !== candidate.id &&
-            distanceKm(candidate.lat, candidate.lon, im.lat, im.lon) < 0.25
-        )
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 4);
-
-      const ids = [candidate.id, ...nearby.map((n) => n.id)];
-      const details = await Promise.all(
-        ids.map((id) => fetchImageUrl(id).catch(() => null))
-      );
-      const imageUrls = details
-        .filter((d) => d && d.thumb_1024_url)
-        .map((d) => d.thumb_1024_url);
-      if (imageUrls.length === 0) continue;
-
-      return {
-        imageId: candidate.id,
-        imageUrls,
-        lat: candidate.lat,
-        lon: candidate.lon,
-        scale: cfg.scale,
-        regionLabel: cfg.label,
-        mapView: cfg.mapView || { center: [0, 20], zoom: 1 },
-      };
+      const round = await buildRound(images, cfg);
+      if (round) return round;
     } catch (err) {
       lastError = err;
     }
+  }
+  // 密なタイルが見つからなくても、拾えた中で最も画像が多いタイルを使う
+  if (best) {
+    const round = await buildRound(best, cfg);
+    if (round) return round;
   }
   throw new Error(
     `画像が見つかりませんでした。もう一度お試しください。${lastError ? `(${lastError.message})` : ""}`

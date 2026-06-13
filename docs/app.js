@@ -531,4 +531,15 @@ $("replay-btn").onclick = () => {
   show("start");
 };
 
+// ====== メインメニューに戻る ======
+function goToMenu() {
+  stopTimer();
+  if (resultMap) { resultMap.remove(); resultMap = null; }
+  state.current = null;
+  state.guess = null;
+  show("start");
+  startPrefetch(); // メニューの選択に合わせて1問目を先読みし直す
+}
+$("menu-btn").onclick = goToMenu;
+
 init();

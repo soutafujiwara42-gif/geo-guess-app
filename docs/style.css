@@ -95,6 +95,17 @@ select {
 .hud-item b { color: var(--text); font-size: 14px; }
 #timer-box b { color: #fbbf24; }
 
+/* HUD内：メインメニューに戻るボタン */
+.hud-menu-btn {
+  background: rgba(15,23,32,.82);
+  backdrop-filter: blur(6px);
+  padding: 8px 14px; border-radius: 999px;
+  font-size: 13px; color: var(--text);
+  border: 1px solid rgba(255,255,255,.15);
+  cursor: pointer; transition: background .15s;
+}
+.hud-menu-btn:hover { background: rgba(239,68,68,.85); }
+
 /* 推測マップ（右下、ホバーで拡大） */
 #map-panel {
   position: absolute; right: 14px; bottom: 14px; z-index: 6;
